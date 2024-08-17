@@ -1,25 +1,56 @@
-// components/Dashboard.tsx
-import { useState } from 'react';
+import { useEffect, useState, Key, ReactElement, JSXElementConstructor, ReactNode } from 'react';
 import axios from 'axios';
 
 interface DashboardProps {
   access_token: string;
 }
 
+interface Playlist {
+  id: Key;
+  name: string;
+  images: { url: string }[];
+}
+
 const Dashboard: React.FC<DashboardProps> = ({ access_token }) => {
   const [query, setQuery] = useState('');
-  const [playlist, setPlaylist] = useState<any>(null);
+  const [playlists, setPlaylists] = useState<Playlist[] | null>(null);
 
-  const createPlaylist = async () => {
-    try {
-      const response = await axios.get('/api/create-playlist', {
-        params: { query, access_token },
-      });
-      setPlaylist(response.data);
-    } catch (error) {
-      console.error('Error creating playlist:', error);
-    }
+  const renderPlaylists = () => {
+    return playlists?.map((p) => (
+      <div
+        onClick={() => {
+          // Handle playlist selection or other actions
+        }}
+        className="p-2 rounded-md hover:shadow-custom transition duration-150 ease-in-out relative cursor-pointer"
+        key={p.id}
+      >
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60 rounded-md opacity-0 hover:opacity-100 transition-opacity duration-300 ease-in-out">
+          <span className="text-[#fefae0] text-center text-2xl">{p.name}</span>
+        </div>
+        {p.images.length ? (
+          <img className="w-full h-full rounded-md" src={p.images[0].url} alt={p.name} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center rounded-md bg-gray-200">No Image</div>
+        )}
+      </div>
+    ));
   };
+
+  useEffect(() => {
+    const getPlaylists = async () => {
+      try {
+        const response = await axios.get('/api/get-playlists', {
+          params: { access_token },
+        });
+        setPlaylists(response.data.items); // Assuming response.data.items is an array of playlists
+        console.log('Fetched playlists:', response.data.items);
+      } catch (error) {
+        console.error('Error getting playlists:', error);
+      }
+    };
+
+    getPlaylists();
+  }, [access_token]);
 
   const logout = async () => {
     try {
@@ -32,28 +63,17 @@ const Dashboard: React.FC<DashboardProps> = ({ access_token }) => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-24">
-      <h1 className="text-6xl">SpotAI Dashboard</h1>
-
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Enter theme"
-        className="mt-4 p-2 border"
-      />
-      <button onClick={createPlaylist} className="mt-4 p-2 bg-blue-500 text-white">
-        Create Playlist
-      </button>
-      {playlist && (
-        <div className="mt-8">
-          <h2>{playlist.name}</h2>
-          <ul>
-            {playlist.tracks.items.map((item: any) => (
-              <li key={item.track.id}>{item.track.name}</li>
-            ))}
-          </ul>
+      <h1 className="text-6xl mb-8">SpotAI Dashboard</h1>
+      {playlists ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {renderPlaylists()}
         </div>
+      ) : (
+        <p>Loading playlists...</p>
       )}
+      <button onClick={logout} className="mt-8 p-2 bg-red-500 text-white">
+        Logout
+      </button>
     </div>
   );
 };
