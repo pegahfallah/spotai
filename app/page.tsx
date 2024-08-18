@@ -1,30 +1,32 @@
 import Image from "next/image";
-import Dashboard from './components/Dashboard';
+import Dashboard from './dashboard/page';
 import Album from './components/album'
 import { SessionProvider } from "next-auth/react";
 import { getServerSession } from 'next-auth'
+import { AuthButton } from "./components/AuthButton/AuthButton";
+import { redirect } from 'next/navigation'
 
 
 export default async function Home({ searchParams }: { searchParams: { access_token?: string } }) {
-  const session = await getServerSession();
-
+    const session = await getServerSession()
+    if (session && session.user) {
+        redirect('/dashboard')
+    }
   return (
     <>
-      getServerSession result
-      {session?.user?.name ? (
-        <div>here:{session?.user?.name}</div>
-    ) : (<div>Not logged in</div>)}
-      {/* <div className="h-[100vh] w-[100vw] flex flex-col items-center justify-center gap-10 overflow-hidden">
+      {session?.user?.name ? null : null}
+      <div className="h-[100vh] w-[100vw] flex flex-col items-center justify-center gap-10 overflow-hidden">
         <div className='flex flex-col items-center justify-end align-center gap-y-8 h-full w-full'>
           <h1 className="text-6xl">
             SpotAI
           </h1>
           <p className="text-xl">
             Generate a playlist cover based on your Spotify playlist vibes
-          </p> */}
+          </p>
       
+            <AuthButton />
  
-{/*           
+          
           <div className='flex gap-x-8 mt-12'>
             <Image
               width={180}
@@ -50,7 +52,7 @@ export default async function Home({ searchParams }: { searchParams: { access_to
             </div>
           </div>
         </div>
-      </div> */}
+      </div>
     </>
   );
 }

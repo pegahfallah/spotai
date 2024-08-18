@@ -13,7 +13,7 @@ const authOptions: NextAuthOptions = {
     }),
   ],
     secret: process.env.NEXTAUTH_SECRET,
-    debug: true, // Enable debug mode
+    debug: true,
     callbacks: {
     async session({ session, token }: { session: any; token: any }) {
       session.user.accessToken = token.accessToken;

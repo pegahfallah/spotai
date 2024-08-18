@@ -1,33 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { getSession } from 'next-auth/react';
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = req.nextUrl;
-  const access_token = searchParams.get('access_token') || '';
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const session = await getSession({ req });
 
-  if (!access_token) {
-    return new NextResponse('Access token is missing', { status: 400 });
+  if (!session) {
+    return res.status(401).json({ message: 'Unauthorized' });
   }
 
+  const { accessToken } = session;
+
   try {
-    const userResponse = await axios.get('https://api.spotify.com/v1/me', {
+    const response = await fetch('https://api.spotify.com/v1/me/playlists', {
       headers: {
-        Authorization: `Bearer ${access_token}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
-    const userId = userResponse.data.id;
+    if (!response.ok) {
+      return res.status(response.status).json({ message: 'Failed to fetch playlists' });
+    }
 
-    const playlistsResponse = await axios.get(`https://api.spotify.com/v1/users/${userId}/playlists`, {
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-      },
-    });
-
-
-    return NextResponse.json(playlistsResponse.data);
+    const data = await response.json();
+    res.status(200).json(data);
   } catch (error) {
-    console.error('Error fetching playlists:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 }

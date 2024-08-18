@@ -21,8 +21,7 @@ export default async function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <SessionProvider session={session}>
-          <main className="flex min-h-screen flex-col items-center justify-between p-24">
-            <Nav />
+          <main className="min-h-screen">
             {children}
           </main>
         </SessionProvider>
