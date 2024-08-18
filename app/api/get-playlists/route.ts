@@ -1,16 +1,23 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { getSession } from 'next-auth/react';
+import { NextRequest, NextResponse } from 'next/server';
+import { authOptions } from '../auth/[...nextauth]/route';
+import { getToken } from 'next-auth/jwt';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const session = await getSession({ req });
 
-  if (!session) {
-    return res.status(401).json({ message: 'Unauthorized' });
+export async function GET(req: NextRequest, res: NextResponse) {
+    const token = await getToken({
+        req,
+        secret: process.env.NEXTAUTH_SECRET ?? '',
+    });
+
+  const accessToken = token?.accessToken;
+
+  console.log('accessToken: ', accessToken);
+   if (!accessToken) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { accessToken } = session;
-
   try {
+    // Make the request to the Spotify API to get the user's playlists
     const response = await fetch('https://api.spotify.com/v1/me/playlists', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -18,12 +25,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (!response.ok) {
-      return res.status(response.status).json({ message: 'Failed to fetch playlists' });
+      return NextResponse.json({ error: 'Failed to fetch playlists' }, { status: response.status });
     }
 
-    const data = await response.json();
-    res.status(200).json(data);
+    const playlists = await response.json();
+
+    // Return the playlists as a JSON object
+    console.log(playlists)
+    return NextResponse.json({ playlists }, { status: 200 });
   } catch (error) {
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error('Error fetching playlists:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

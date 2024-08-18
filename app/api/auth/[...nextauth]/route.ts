@@ -3,7 +3,7 @@ import NextAuth from 'next-auth';
 import SpotifyProvider from 'next-auth/providers/spotify';
 import { NextAuthOptions } from 'next-auth';
 
-const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     SpotifyProvider({
       clientId: process.env.SPOTIFY_CLIENT_ID as string,
@@ -12,22 +12,21 @@ const authOptions: NextAuthOptions = {
         'https://accounts.spotify.com/authorize?scope=user-read-email,playlist-read-private',
     }),
   ],
-    secret: process.env.NEXTAUTH_SECRET,
-    debug: true,
-    callbacks: {
-    async session({ session, token }: { session: any; token: any }) {
-      session.user.accessToken = token.accessToken;
-      return session;
-    },
+  secret: process.env.NEXTAUTH_SECRET,
+  callbacks: {
     async jwt({ token, account }: { token: any; account?: any }) {
       if (account) {
         token.accessToken = account.access_token;
       }
       return token;
     },
+    async session({ session, token }: { session: any; token: any }) {
+      session.user.accessToken = token.accessToken;
+      return session;
+    },
   },
 };
 
 const handler = NextAuth(authOptions);
 
-export { handler as GET, handler as POST, authOptions };
+export { handler as GET, handler as POST };
