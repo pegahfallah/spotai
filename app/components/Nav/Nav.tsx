@@ -29,9 +29,8 @@ function AuthButton() {
 export default function Nav() {
     const pathname = usePathname()
     return (
-        <div className='absolute w-'>
+        <div className='absolute top-0 right-0'>
             <AuthButton />
-            <button className='btn-secondary'>hi</button>
             <ul>
                 <Link href='/'>
                     <li className={pathname === '/' ? ACTIVE : INACTIVE}>
