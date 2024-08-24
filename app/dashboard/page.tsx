@@ -22,7 +22,7 @@ const Dashboard: React.FC = () => {
   const [generatingImage, setGeneratingImage] = useState<boolean>(false);
   const [buttonDisabled, setButtonDisabled] = useState<boolean>(false);
   const [generatedImages, setGeneratedImages] = useState<{ [key: string]: string }>({});
-  console.log('the selectedPLaylist', selectedPlaylist)
+  // console.log('the selectedPLaylist', selectedPlaylist)
   useEffect(() => {
     if (session) {
       console.log("Session exists, fetching playlists...");
@@ -43,18 +43,29 @@ const Dashboard: React.FC = () => {
     }
   }, [session]);
 
- const handleClickCover = async () => {
+const fetchPlaylistTracks = async (playlistId: string) => {
+  try {
+    const response = await axios.get('/api/get-playlist-tracks', {
+      params: { playlistId },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching playlist tracks:', error);
+    throw error;
+  }
+};
+
+// Usage in handleClickCover
+const handleClickCover = async () => {
   if (!selectedPlaylist) return;
 
   try {
     // Step 1: Get playlist tracks
-    const trackIds = await axios.get('/api/get-playlist-tracks', {
-      params: { playlistId: selectedPlaylist.id },
-    });
+    const trackIds = await fetchPlaylistTracks(selectedPlaylist.id);
 
     // Step 2: Get audio features for the tracks
-    const audioFeatures = await axios.get('/api/get-tracks-audio-features', {
-      params: { trackIds: trackIds.data },
+    const audioFeatures = await axios.get('/api/get-track-audio-features', {
+      params: { trackIds },
     });
 
     // Step 3: Analyze the mood of the playlist
@@ -74,7 +85,7 @@ const Dashboard: React.FC = () => {
       [selectedPlaylist.id]: imageUrl,
     }));
   } catch (error) {
-    console.error("Error processing playlist:", error);
+    console.error('Error processing playlist:', error);
   }
 };
 

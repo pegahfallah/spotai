@@ -1,32 +1,51 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { getToken } from 'next-auth/jwt';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
+export async function GET(req: NextRequest) {
+  // Retrieve the JWT token from the request
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET ?? '',
+  });
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET ?? '' });
-  const { playlistId } = req.query;
+  // Extract the playlistId from the URL query parameters
+  const url = new URL(req.url);
+  const playlistId = url.searchParams.get('playlistId');
 
-  if (!playlistId || !token) {
-    return res.status(400).json({ message: 'Missing required parameters' });
+  // If there is no token or playlistId, return an error response
+  if (!token || !playlistId) {
+    return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
   }
 
   const accessToken = token.accessToken;
 
+  // Log the access token for debugging purposes
+  console.log('accessToken: ', accessToken);
+
+  // If no access token is available, return an unauthorized response
+  if (!accessToken) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
+    // Make a request to the Spotify API to get playlist tracks
     const response = await axios.get(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
     });
 
-    const trackIds = response.data.items.map((item: { track: { id: any; }; }) => item.track.id).join(',');
-    return res.status(200).json(trackIds);
+    // Extract and map the track IDs from the response
+      const trackIds = response.data.items.map((item: { track: { id: any } }) => item.track.id).join(',');
+      console.log(trackIds)
+    // Return the track IDs as a JSON response
+    return NextResponse.json(trackIds, { status: 200 });
   } catch (error) {
-    console.error("Error fetching playlist tracks:", error);
-    return res.status(500).json({ message: 'Error fetching playlist tracks' });
+    // Log the error for debugging purposes
+    console.error('Error fetching playlists:', error);
+
+    // Return a generic internal server error response
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

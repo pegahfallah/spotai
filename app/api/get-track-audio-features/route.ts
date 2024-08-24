@@ -1,17 +1,19 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { getToken } from 'next-auth/jwt';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
+export default async function handler(req: NextRequest, res: NextResponse) {
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET ?? '' });
-  const { trackIds } = req.query;
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET ?? '',
+  });
+  const url = new URL(req.url);
+  const trackIds = url.searchParams.get('trackIds');
+
 
   if (!trackIds || !token) {
-    return res.status(400).json({ message: 'Missing required parameters' });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const accessToken = token.accessToken;
@@ -23,9 +25,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-    return res.status(200).json(response.data.audio_features);
+    return NextResponse.json(trackIds, { status: 200 });
   } catch (error) {
     console.error("Error fetching tracks' audio features:", error);
-    return res.status(500).json({ message: 'Error fetching tracks\' audio features' });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
