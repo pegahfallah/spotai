@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import axios from 'axios';
+import Modal from '../components/Modal/Modal';
+import analyzePlaylistVibe from '../utils.js'
+
 interface Playlist {
   id: string;
   name: string;
@@ -10,14 +13,16 @@ interface Playlist {
 }
 
 const Dashboard: React.FC = () => {
-  
   const { data: session } = useSession();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState<boolean>()
-  const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist>();
-
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
+  const [generatingImage, setGeneratingImage] = useState<boolean>(false);
+  const [buttonDisabled, setButtonDisabled] = useState<boolean>(false);
+  const [generatedImages, setGeneratedImages] = useState<{ [key: string]: string }>({});
+  console.log('the selectedPLaylist', selectedPlaylist)
   useEffect(() => {
     if (session) {
       console.log("Session exists, fetching playlists...");
@@ -38,13 +43,49 @@ const Dashboard: React.FC = () => {
     }
   }, [session]);
 
+ const handleClickCover = async () => {
+  if (!selectedPlaylist) return;
+
+  try {
+    // Step 1: Get playlist tracks
+    const trackIds = await axios.get('/api/get-playlist-tracks', {
+      params: { playlistId: selectedPlaylist.id },
+    });
+
+    // Step 2: Get audio features for the tracks
+    const audioFeatures = await axios.get('/api/get-tracks-audio-features', {
+      params: { trackIds: trackIds.data },
+    });
+
+    // Step 3: Analyze the mood of the playlist
+    const moodDescription = analyzePlaylistVibe(audioFeatures.data);
+
+    // Step 4: Send mood description to generate-cover API to get the image URL
+    const response = await axios.post('/api/generate-cover', {
+      moodDescription,
+      playlistName: selectedPlaylist.name,
+    });
+
+    const imageUrl = response.data.imageUrl;
+
+    // Step 5: Set the generated image URL to state (to display it)
+    setGeneratedImages((prevState) => ({
+      ...prevState,
+      [selectedPlaylist.id]: imageUrl,
+    }));
+  } catch (error) {
+    console.error("Error processing playlist:", error);
+  }
+};
+
+
   const renderPlaylists = () => {
     if (Array.isArray(playlists) && playlists.length > 0) {
       return playlists.map((p) => (
         <div
           onClick={() => {
-            setIsModalOpen(true)
-            setSelectedPlaylist(p)
+            setIsModalOpen(true);
+            setSelectedPlaylist(p);
           }}
           className="p-4 bg-gray-900 rounded-md relative hover:cursor-pointer shadow-lg transition-transform transform hover:scale-105"
           key={p.id}
@@ -101,15 +142,25 @@ const Dashboard: React.FC = () => {
   return (
     <>
       <div className="flex flex-col items-center justify-center min-h-screen p-8">
-      <h1 className="text-5xl mb-8 text-gray-800">Select a Playlist to Analyze</h1>
-      {playlists.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-          {renderPlaylists()}
-        </div>
-      ) : (
-        <p className="text-gray-500 text-lg">No playlists available.</p>
-      )}
+        <h1 className="text-5xl mb-8 text-gray-800">Select a Playlist to Analyze</h1>
+        {playlists.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+            {renderPlaylists()}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-lg">No playlists available.</p>
+        )}
       </div>
+      {selectedPlaylist && (
+        <Modal isOpen={isModalOpen} setIsOpen={setIsModalOpen} title={selectedPlaylist.name} imageUrl={generatedImages[selectedPlaylist.id]} showImage={generatedImages[selectedPlaylist.id] === undefined}>
+          {generatedImages[selectedPlaylist.id] && (
+            <img src={generatedImages[selectedPlaylist.id]} alt="Generated Mood" width="100%" className='my-4'/>
+          )}
+          <button className="btn-primary" onClick={handleClickCover} disabled={generatingImage || buttonDisabled}>
+            <p>{generatingImage ? 'Generating...' : 'Generate a new playlist cover photo'}</p>
+          </button>
+        </Modal>
+      )}
     </>
   );
 };
