@@ -24,6 +24,8 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    console.log('hi')
+   console.log(NextResponse.json(playlistsResponse.data))
 
     return NextResponse.json(playlistsResponse.data);
   } catch (error) {
