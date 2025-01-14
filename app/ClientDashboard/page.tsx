@@ -113,17 +113,17 @@ export default function ClientDashboard({ playlists: initialPlaylists = [] }: { 
         {selectedPlaylist.tracks.map((track) => (
           <li 
             key={track.id} 
-            className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded"
+            className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded transition-colors duration-200"
           >
             {track.album.images?.[2]?.url && (
               <img 
                 src={track.album.images[2].url} 
                 alt={track.name} 
-                className="w-10 h-10 object-cover rounded"
+                className="w-10 h-10 object-cover rounded shadow-sm"
               />
             )}
-            <div>
-              <div className="font-medium">{track.name}</div>
+            <div className="flex-1">
+              <div className="font-medium text-gray-900">{track.name}</div>
               <div className="text-sm text-gray-600">
                 {track.artists.map(artist => artist.name).join(", ")}
               </div>
@@ -135,62 +135,80 @@ export default function ClientDashboard({ playlists: initialPlaylists = [] }: { 
   };
 
   return (
-    <div className="w-full h-full">
-      <h1 className="text-4xl">Your Playlists</h1>
-      <div className="grid grid-cols-3 grid-flow-row gap-4">
+    <div className="w-full max-w-7xl mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold text-gray-900 mb-8">Your Playlists</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {playlists && playlists.length > 0 ? (
           playlists.map((playlist) => (
-            <div key={playlist.id} onClick={() => handleOnClickPlaylist(playlist)} className="cursor-pointer">
-              {playlist.images && playlist.images.length > 0 ? (
-                <img src={playlist.images[0].url} alt={playlist.name} />
-              ) : (
-                <div>No image available</div>
-              )}
-              <div>{playlist.name}</div>
+            <div 
+              key={playlist.id} 
+              onClick={() => handleOnClickPlaylist(playlist)} 
+              className="group cursor-pointer bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden"
+            >
+              <div className="aspect-square relative">
+                {playlist.images && playlist.images.length > 0 ? (
+                  <img 
+                    src={playlist.images[0].url} 
+                    alt={playlist.name}
+                    className="w-full h-full object-cover group-hover:opacity-90 transition-opacity duration-200" 
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-400">No image available</span>
+                  </div>
+                )}
+              </div>
+              <div className="p-4">
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-gray-700 transition-colors duration-200 line-clamp-2">
+                  {playlist.name}
+                </h3>
+              </div>
             </div>
           ))
         ) : (
-          <div>No playlists found.</div>
+          <div className="col-span-full text-center text-gray-500 py-12">
+            No playlists found.
+          </div>
         )}
       </div>
 
       {showModal && selectedPlaylist && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg w-11/12 max-w-4xl relative flex flex-col h-[90vh]">
-            <div className="p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-11/12 max-w-4xl relative flex flex-col h-[90vh]">
+            <div className="p-6 border-b border-gray-200">
               <button
                 onClick={() => {
                   setShowModal(false);
                   setTracksLoaded(false);
                 }}
-                className="absolute top-4 right-4 bg-gray-200 text-gray-600 hover:bg-gray-300 rounded-full p-2 focus:outline-none"
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 rounded-full p-2 hover:bg-gray-100 transition-colors duration-200 focus:outline-none"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
 
-              <h2 className="text-2xl font-semibold mb-4">Playlist Details</h2>
-              <div className="flex items-start space-x-4">
+              <div className="flex items-start space-x-6">
                 {selectedPlaylist.images && selectedPlaylist.images.length > 0 ? (
                   <img
-                    className="w-48 h-48 object-cover rounded"
+                    className="w-48 h-48 object-cover rounded-lg shadow-md"
                     src={selectedPlaylist.images[0].url}
                     alt={selectedPlaylist.name}
                   />
                 ) : (
-                  <div className="w-48 h-48 bg-gray-200 rounded flex items-center justify-center">
-                    No image available
+                  <div className="w-48 h-48 bg-gray-200 rounded-lg flex items-center justify-center">
+                    <span className="text-gray-400">No image available</span>
                   </div>
                 )}
                 <div className="flex-1">
-                  <p className="text-xl font-medium mb-4">{selectedPlaylist.name}</p>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Playlist Details</h2>
+                  <p className="text-xl text-gray-700">{selectedPlaylist.name}</p>
                 </div>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 pb-6">
-              <h3 className="text-lg font-semibold mb-3 sticky top-0 bg-white py-2">
+              <h3 className="text-lg font-semibold sticky top-0 bg-white py-4 mb-3 border-b border-gray-200">
                 {isLoading ? (
                   "Loading tracks..."
                 ) : tracksLoaded ? (
