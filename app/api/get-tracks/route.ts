@@ -11,13 +11,19 @@ export async function GET(req: NextRequest) {
     
     console.log("API Route - Playlist ID:", playlist_id);
     console.log("API Route - Session:", session);
-
+    
     if (!session?.user?.accessToken) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized - No access token found" }, 
+        { status: 401 }
+      );
     }
 
     if (!playlist_id) {
-      return new NextResponse("Playlist ID is required", { status: 400 });
+      return NextResponse.json(
+        { error: "Playlist ID is required" }, 
+        { status: 400 }
+      );
     }
 
     const response = await axios.get(
@@ -25,23 +31,44 @@ export async function GET(req: NextRequest) {
       {
         headers: {
           Authorization: `Bearer ${session.user.accessToken}`,
-        },
-        params: {
-          limit: 5,
-        },
+        }
       }
     );
 
-    console.log(response.data)
-    return NextResponse.json(response.data);
+    const tracks = response.data.items.map((item: any) => ({
+      id: item.track.id,
+      name: item.track.name,
+      artists: item.track.artists,
+      album: item.track.album,
+      duration_ms: item.track.duration_ms
+    }));
+
+    return NextResponse.json(tracks);
   } catch (error: any) {
     console.error("Detailed error:", error);
+    
     if (axios.isAxiosError(error)) {
       console.error("Spotify API error:", error.response?.data);
+      
+      if (error.response?.status === 401) {
+        return NextResponse.json(
+          { error: "Spotify access token expired or invalid" },
+          { status: 401 }
+        );
+      }
+      
+      return NextResponse.json(
+        { 
+          error: "Spotify API Error", 
+          details: error.response?.data?.error?.message || error.message 
+        },
+        { status: error.response?.status || 500 }
+      );
     }
-    return new NextResponse(
-      JSON.stringify({ error: "Internal Server Error", details: error.message }), 
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+
+    return NextResponse.json(
+      { error: "Internal Server Error", details: error.message },
+      { status: 500 }
     );
   }
 }
