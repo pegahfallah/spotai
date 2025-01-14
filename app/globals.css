@@ -28,18 +28,6 @@ p {
   font-family: 'Poppins', sans-serif;
 }
 
-body {
-  color: #283618;
-  background: linear-gradient(to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
-  background: #fefae0;
-
-}
-
-button {
-  color: #fefae0;
-}
 
 @keyframes scroll {
   0% {
