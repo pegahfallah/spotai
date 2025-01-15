@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: 'Give factual information about the artist (name, where they are from, genre) to help the user become more cultured about music and the history.',
+          content: 'Give factual information about the artist (name, where they are from, genre, and  what the song lyrics mean iff theres a deep meaning) to help the user become more cultured about music and the history.',
         },
         {
           role: 'user',
