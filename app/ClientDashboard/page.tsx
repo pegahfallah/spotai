@@ -37,15 +37,15 @@ export default function ClientDashboard({ playlists: initialPlaylists = [] }: { 
   const [tracksLoaded, setTracksLoaded] = useState<boolean>(false);
   const [fetchedPlaylistIds, setFetchedPlaylistIds] = useState<string[]>([]);
   const [expandedTrackId, setExpandedTrackId] = useState<string | null>(null);
-  const [trackInfo, setTrackInfo] = useState<Record<string, any>>({});
-  const [loadingTrackInfo, setLoadingTrackInfo] = useState<boolean>(false);
 
+  const [trackInfo, setTrackInfo] = useState<Record<string, { story?: string }>>({});
+  const [loadingTrackInfo, setLoadingTrackInfo] = useState<boolean>(false);
 
   const fetchPlaylistTracks = async (playlistId: string) => {
     try {
       setIsLoading(true);
       setTracksLoaded(false);
-      
+
       const response = await fetch(`/api/get-tracks?playlist_id=${playlistId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch tracks');
@@ -58,13 +58,13 @@ export default function ClientDashboard({ playlists: initialPlaylists = [] }: { 
             : playlist
         )
       );
-      
+
       setSelectedPlaylist(currentSelected =>
         currentSelected?.id === playlistId
           ? { ...currentSelected, tracks }
           : currentSelected
       );
-      
+
       setFetchedPlaylistIds(prev => [...prev, playlistId]);
       setTracksLoaded(true);
     } catch (error) {
@@ -86,8 +86,34 @@ export default function ClientDashboard({ playlists: initialPlaylists = [] }: { 
     }
   };
 
-   const handleTrackClick = (trackId: string) => {
+  const handleTrackClick = (trackId: string) => {
     setExpandedTrackId(expandedTrackId === trackId ? null : trackId);
+  };
+
+  const fetchSongStory = async (track: Track) => {
+    setLoadingTrackInfo(true);
+    try {
+      const artistName = track.artists.length > 0 ? track.artists[0].name : "Unknown Artist";
+      const res = await fetch(
+        `/api/get-song-story?trackName=${encodeURIComponent(track.name)}&artistName=${encodeURIComponent(artistName)}`
+      );
+      if (!res.ok) {
+        throw new Error("Failed to fetch the story");
+      }
+      const data = await res.json();
+
+      setTrackInfo((prev) => ({
+        ...prev,
+        [track.id]: {
+          ...prev[track.id],
+          story: data.story,
+        },
+      }));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingTrackInfo(false);
+    }
   };
 
   const renderTracksList = () => {
@@ -119,15 +145,15 @@ export default function ClientDashboard({ playlists: initialPlaylists = [] }: { 
       <ul className="space-y-2">
         {selectedPlaylist.tracks.map((track) => (
           <li key={track.id} className="rounded-lg overflow-hidden">
-            <div 
+            <div
               onClick={() => handleTrackClick(track.id)}
               className="flex items-center space-x-3 p-2 hover:bg-gray-800 cursor-pointer transition-colors duration-200"
             >
               <div className="flex items-center space-x-3 flex-1">
                 {track.album.images?.[2]?.url && (
-                  <img 
-                    src={track.album.images[2].url} 
-                    alt={track.name} 
+                  <img
+                    src={track.album.images[2].url}
+                    alt={track.name}
                     className="w-10 h-10 object-cover rounded shadow-sm"
                   />
                 )}
@@ -139,9 +165,8 @@ export default function ClientDashboard({ playlists: initialPlaylists = [] }: { 
                 </div>
                 <div className="text-gray-400">
                   <svg
-                    className={`w-5 h-5 transition-transform duration-200 ${
-                      expandedTrackId === track.id ? 'transform rotate-180' : ''
-                    }`}
+                    className={`w-5 h-5 transition-transform duration-200 ${expandedTrackId === track.id ? 'transform rotate-180' : ''
+                      }`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -156,24 +181,37 @@ export default function ClientDashboard({ playlists: initialPlaylists = [] }: { 
                 </div>
               </div>
             </div>
-            
+
             <div
-              className={`bg-gray-800 overflow-hidden transition-all duration-200 ${
-                expandedTrackId === track.id ? 'max-h-48' : 'max-h-0'
-              }`}
+              className={`bg-gray-800 transition-all duration-200 ${expandedTrackId === track.id
+                  ? 'max-h-screen overflow-y-auto'
+                  : 'max-h-0 overflow-hidden'
+                }`}
             >
+
               <div className="p-4 space-y-2">
                 <div className="text-gray-300">
                   <span className="font-medium">Album:</span> {track.album.name}
                 </div>
-                <div className="text-gray-300">
-                </div>
                 {track.album.images?.[0]?.url && (
-                  <img 
-                    src={track.album.images[0].url} 
+                  <img
+                    src={track.album.images[0].url}
                     alt={track.album.name}
-                    className="w-32 h-32 object-cover rounded shadow-lg" 
+                    className="w-32 h-32 object-cover rounded shadow-lg"
                   />
+                )}
+
+                <button
+                  onClick={() => fetchSongStory(track)}
+                  className="bg-green-600 hover:bg-green-700 text-white py-1 px-2 rounded mt-2"
+                  disabled={loadingTrackInfo}
+                >
+                  {loadingTrackInfo ? "Fetching story..." : "Get Song Story"}
+                </button>
+                {trackInfo[track.id]?.story && (
+                  <div className="mt-2 h-full p-2 bg-gray-700 rounded max-h-screen text-gray-100">
+                    <p>{trackInfo[track.id]?.story}</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -190,17 +228,17 @@ export default function ClientDashboard({ playlists: initialPlaylists = [] }: { 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {playlists && playlists.length > 0 ? (
             playlists.map((playlist) => (
-              <div 
-                key={playlist.id} 
-                onClick={() => handleOnClickPlaylist(playlist)} 
+              <div
+                key={playlist.id}
+                onClick={() => handleOnClickPlaylist(playlist)}
                 className="group cursor-pointer bg-gray-800 rounded-lg hover:bg-gray-750 transition-all duration-200 overflow-hidden"
               >
                 <div className="aspect-square relative">
                   {playlist.images && playlist.images.length > 0 ? (
-                    <img 
-                      src={playlist.images[0].url} 
+                    <img
+                      src={playlist.images[0].url}
                       alt={playlist.name}
-                      className="w-full h-full object-cover group-hover:opacity-80 transition-opacity duration-200" 
+                      className="w-full h-full object-cover group-hover:opacity-80 transition-opacity duration-200"
                     />
                   ) : (
                     <div className="w-full h-full bg-gray-700 flex items-center justify-center">
@@ -234,8 +272,10 @@ export default function ClientDashboard({ playlists: initialPlaylists = [] }: { 
                   }}
                   className="absolute top-4 right-4 text-gray-400 hover:text-green-400 rounded-full p-2 hover:bg-gray-800 transition-colors duration-200 focus:outline-none"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
 
