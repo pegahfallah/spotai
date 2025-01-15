@@ -1,6 +1,6 @@
 // app/dashboard/page.tsx (Server Component)
 import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+import { authOptions } from "../authOptions"
 import ClientDashboard from "../ClientDashboard/page";
 import { redirect } from "next/navigation";
 
