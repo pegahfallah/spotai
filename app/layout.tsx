@@ -25,6 +25,13 @@ export default async function RootLayout({
             <Nav />
             {children}
           </main>
+          <footer className="bg-black py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p className="text-gray-400">
+              © 2024 SpotAI. Discover more about the music you love.
+            </p>
+          </div>
+        </footer>
         </SessionProvider>
       </body>
     </html>

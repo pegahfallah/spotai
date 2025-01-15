@@ -1,4 +1,3 @@
-// app/dashboard/page.tsx (Server Component)
 import { getServerSession } from "next-auth";
 import { authOptions } from "../authOptions"
 import ClientDashboard from "../ClientDashboard/page";
